@@ -1,0 +1,8 @@
+/.idea/
+/target/
+*.iml
+/system/
+/logs/
+/dist/
+dist.zip
+/rank/
