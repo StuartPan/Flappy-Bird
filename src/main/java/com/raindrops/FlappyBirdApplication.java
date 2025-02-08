@@ -11,8 +11,11 @@ import com.raindrops.data.RankData;
 import com.raindrops.enums.EntityTypeEnum;
 import com.raindrops.factory.BackgroundFactory;
 import com.raindrops.factory.BirdFactory;
+import javafx.scene.control.Button;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
+import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
@@ -21,7 +24,6 @@ import javafx.util.Duration;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.text.SimpleDateFormat;
@@ -32,6 +34,8 @@ public class FlappyBirdApplication extends GameApplication {
 
     private final BirdComponent birdComponent = new BirdComponent();
 
+    private List<RankData> rankList = new ArrayList<>();
+
     public static void main(String[] args) {
         launch(args);
     }
@@ -41,7 +45,7 @@ public class FlappyBirdApplication extends GameApplication {
         settings.setTitle("Flappy Bird");
         settings.setWidth(1280);
         settings.setHeight(720);
-        settings.setVersion("1.0");
+        settings.setVersion("1.1");
     }
 
     @Override
@@ -88,44 +92,34 @@ public class FlappyBirdApplication extends GameApplication {
     }
 
     public void gameOver() {
-        this.recordScore("raindrops");
-        FXGL.getDialogService().showConfirmationBox("游戏结束，是否重新开始", restart -> {
-            if (restart) {
-                FXGL.getGameController().startNewGame();
-            } else {
-                FXGL.getGameController().exit();
+        rankList = this.getRankList();
+        if (rankList.size() < 10) {
+            this.recordScore();
+            return;
+        } else {
+            int minScore = rankList.stream().mapToInt(RankData::getScore).min().getAsInt();
+            if (minScore < FXGL.getip("score").getValue()) {
+                this.recordScore();
+                return;
             }
-        });
+        }
+        this.showRankUI();
     }
 
-    private void recordScore(String name) {
-        if (name == null || name.isEmpty()) {
-            name = "未命名";
-        }
-        StringBuilder rank = new StringBuilder();
-        rank.append(FXGL.getip("score").getValue())
-                .append(",").append(name).append(",")
-                .append(new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())).append("\r\n");
-        Path path = Paths.get("./rank/RankList.txt");
-        List<RankData> rankList = this.getRankList();
-        if (rankList.size() < 10) {
+    private void recordScore() {
+        FXGL.getDialogService().showInputBox("请输入您的名字", name -> {
+            if (name == null || name.isEmpty()) {
+                name = "未命名";
+            }
+            rankList.add(new RankData(FXGL.getip("score").getValue(), name, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())));
+            rankList.sort((o1, o2) -> o2.getScore() - o1.getScore());
             try {
-                Files.writeString(path, rank.toString(), StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+                Files.writeString(Paths.get("./rank/RankList.txt"), rankList.stream().map(RankData::toString).collect(Collectors.joining("\r\n")), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
             } catch (IOException e) {
                 System.out.println(e.getMessage());
             }
-            return;
-        }
-        int minScore = rankList.stream().mapToInt(RankData::getScore).min().getAsInt();
-        if (minScore >= FXGL.getip("score").getValue()) {
-            return;
-        }
-        rankList.add(new RankData(FXGL.getip("score").getValue(), name, new SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new Date())));
-        try {
-            Files.writeString(path, rankList.stream().map(RankData::toString).collect(Collectors.joining("\r\n")), StandardOpenOption.CREATE, StandardOpenOption.WRITE);
-        } catch (IOException e) {
-            System.out.println(e.getMessage());
-        }
+            this.showRankUI();
+        });
     }
 
     private List<RankData> getRankList() {
@@ -139,5 +133,23 @@ public class FlappyBirdApplication extends GameApplication {
             System.out.println(e.getMessage());
         }
         return Collections.emptyList();
+    }
+
+    private void showRankUI() {
+        VBox vbox = new VBox(5);
+        List<RankData> rankList = this.getRankList();
+        for (RankData rankData : rankList) {
+            Text rankText = new Text(rankData.getScore() + " - " + rankData.getName() + " - " + rankData.getDate());
+            rankText.setFont(Font.font(20));
+            vbox.getChildren().add(rankText);
+        }
+        ScrollPane scrollPane = new ScrollPane(vbox);
+        scrollPane.setFitToWidth(true);
+
+        Button restartButton = new Button("重新开始");
+        restartButton.setOnAction(event -> FXGL.getGameController().startNewGame());
+        Button exitButton = new Button("退出游戏");
+        exitButton.setOnAction(event -> FXGL.getGameController().exit());
+        FXGL.getDialogService().showBox("排行榜", scrollPane, restartButton, exitButton);
     }
 }

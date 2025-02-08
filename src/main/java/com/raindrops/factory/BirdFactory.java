@@ -20,8 +20,7 @@ public class BirdFactory {
         return FXGL.entityBuilder().at(100, 100)
                 .type(EntityTypeEnum.BIRD)
                 .bbox(new HitBox(BoundingShape.box(70, 60)))
-                .view("123.png")
-//                .view(FXGL.texture("bird.png").toAnimatedTexture(2, Duration.seconds(0.5)).loop())
+                .view(FXGL.texture("bird.png").toAnimatedTexture(2, Duration.seconds(0.5)).loop())
                 .collidable()
                 .with(birdComponent, new WallComponent())
                 .build();

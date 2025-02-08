@@ -16,7 +16,7 @@ public class BackgroundFactory {
 
     public static Entity createEntity() {
         Entity entity = FXGL.entityBuilder()
-//                .view(new ScrollingBackgroundView(FXGL.texture("background.png").getImage(), FXGL.getAppWidth(), FXGL.getAppHeight()))
+                .view(new ScrollingBackgroundView(FXGL.texture("background.png").getImage(), FXGL.getAppWidth(), FXGL.getAppHeight()))
                 .zIndex(-1)
                 .with(new IrremovableComponent())
                 .type(EntityTypeEnum.BACKGROUND)
